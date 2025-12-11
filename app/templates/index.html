@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система справедливого дележа</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Система справедливого дележа</h1>
+            <p class="subtitle">с делимыми и неделимыми пунктами</p>
+            <p class="algorithm-ref">Алгоритм: Rubchinsky A. "Fair Division with Divisible and Indivisible Items" (2009)</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <h2>Ввод данных</h2>
+                
+                <div class="parameters">
+                    <div class="param-group">
+                        <label for="L">Количество делимых пунктов (L):</label>
+                        <input type="number" id="L" min="0" max="50" value="3">
+                    </div>
+                    
+                    <div class="param-group">
+                        <label for="M">Количество неделимых пунктов (M):</label>
+                        <input type="number" id="M" min="0" max="20" value="4">
+                    </div>
+                    
+                    <div class="param-group">
+                        <label for="H">Сумма оценок (H):</label>
+                        <input type="number" id="H" min="1" value="100">
+                    </div>
+                </div>
+
+                <button onclick="generateTables()" class="btn btn-secondary">Сгенерировать таблицы</button>
+
+                <div id="tables-container">
+                    <!-- Таблицы будут сгенерированы динамически -->
+                </div>
+
+                <div class="buttons">
+                    <button onclick="loadExample()" class="btn btn-secondary">Загрузить пример</button>
+                    <button onclick="solveProblem()" class="btn btn-primary">Решить</button>
+                </div>
+            </section>
+
+            <section class="output-section" id="output-section" style="display: none;">
+                <h2>Результат</h2>
+                <div id="result-container"></div>
+            </section>
+
+            <section class="info-section">
+                <h3>О системе</h3>
+                <p>
+                    Эта система реализует алгоритм справедливого дележа между двумя участниками (A и B).
+                    Алгоритм позволяет найти пропорциональный делёж, при котором каждый участник получает
+                    не менее половины от своей оценки всех предметов.
+                </p>
+                <details>
+                    <summary>Подробнее об алгоритме</summary>
+                    <ol>
+                        <li>Построение ломаной R для делимых пунктов (сортировка по убыванию a_i/b_i)</li>
+                        <li>Генерация множества S всех возможных распределений неделимых пунктов (2^M комбинаций)</li>
+                        <li>Выделение Парето-множества SP (оптимальные точки)</li>
+                        <li>Для каждой точки SP:
+                            <ul>
+                                <li>Построение смещённой ломаной R*</li>
+                                <li>Проверка условий пропорциональности в вершинах</li>
+                                <li>Геометрическая проверка на отрезках</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </details>
+            </section>
+        </main>
+
+        <footer>
+            <p>Fair Division System v1.0.0 | <a href="/api/docs" target="_blank">API Documentation</a></p>
+        </footer>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
