@@ -16,6 +16,7 @@ from fair_division_engine.r_polygon import build_r_polygon, check_r_monotonicity
 from fair_division_engine.indivisible import build_s_set
 from fair_division_engine.pareto import pareto_filter
 from fair_division_engine.proportional import find_proportional_division
+from fair_division_engine.visualization import plot_ad_region, plot_ad_region_with_sp
 
 router = APIRouter()
 
@@ -101,6 +102,76 @@ async def solve_fair_division(request: FairDivisionRequest, debug: bool = False)
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
 
+@router.post("/plot/ad")
+async def plot_ad_graph(request: FairDivisionRequest):
+    """
+    Построение графика области достижимости Ad (ломаная R)
+    
+    Возвращает base64-encoded PNG изображение графика
+    """
+    try:
+        # Валидация
+        validate_input(
+            request.L, request.M,
+            request.a_d, request.b_d,
+            request.a_w, request.b_w,
+            request.H
+        )
+        
+        # Построение графика
+        img_base64 = plot_ad_region(request.a_d, request.b_d)
+        
+        return {
+            "success": True,
+            "image": img_base64,
+            "format": "png",
+            "encoding": "base64"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка построения графика: {str(e)}")
+
+
+@router.post("/plot/ad-with-sp")
+async def plot_ad_with_sp_graph(request: FairDivisionRequest):
+    """
+    Построение графика области достижимости с SP-точками
+    
+    Показывает ломаную R, точки Парето-множества SP и линии пропорциональности
+    """
+    try:
+        # Валидация
+        validate_input(
+            request.L, request.M,
+            request.a_d, request.b_d,
+            request.a_w, request.b_w,
+            request.H
+        )
+        
+        # Построение данных
+        R, sorted_indices = build_r_polygon(request.a_d, request.b_d)
+        S = build_s_set(request.a_w, request.b_w)
+        SP = pareto_filter(S)
+        
+        # Построение графика
+        img_base64 = plot_ad_region_with_sp(
+            request.a_d, request.b_d,
+            request.a_w, request.b_w,
+            SP, request.H / 2.0
+        )
+        
+        return {
+            "success": True,
+            "image": img_base64,
+            "format": "png",
+            "encoding": "base64",
+            "sp_count": len(SP)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка построения графика: {str(e)}")
+
+
 @router.get("/info")
 async def get_info():
     """
@@ -116,10 +187,13 @@ async def get_info():
             "Генерация множества S всех распределений неделимых пунктов",
             "Выделение Парето-множества SP",
             "Проверка пропорциональности через вершины и отрезки",
-            "Поддержка до 2^20 комбинаций неделимых пунктов"
+            "Поддержка до 2^20 комбинаций неделимых пунктов",
+            "Визуализация области достижимости Ad"
         ],
         "endpoints": {
             "POST /api/solve": "Решение задачи справедливого дележа",
+            "POST /api/plot/ad": "График области достижимости Ad",
+            "POST /api/plot/ad-with-sp": "График Ad с SP-точками",
             "GET /api/info": "Информация о системе",
             "GET /": "Веб-интерфейс",
             "GET /health": "Проверка здоровья сервиса"

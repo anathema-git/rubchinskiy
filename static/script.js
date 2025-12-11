@@ -96,20 +96,22 @@ function generateTables() {
 
 // Загрузка примера из ТЗ
 function loadExample() {
-    // Пример из раздела 6 ТЗ
+    // Корректный пример с правильными суммами
+    // A: делимые=60, неделимые=40, итого=100
+    // B: делимые=50, неделимые=50, итого=100
     document.getElementById('L').value = 3;
-    document.getElementById('M').value = 4;
+    document.getElementById('M').value = 2;
     document.getElementById('H').value = 100;
     
     generateTables();
     
-    // Делимые пункты
-    const a_d = [10, 20, 30];
-    const b_d = [15, 15, 20];
+    // Делимые пункты (сумма A=60, B=50)
+    const a_d = [20, 15, 25];
+    const b_d = [20, 30, 0];
     
-    // Неделимые пункты
-    const a_w = [35, 30, 15, 20];
-    const b_w = [18, 20, 12, 25];
+    // Неделимые пункты (сумма A=40, B=50)
+    const a_w = [25, 15];
+    const b_w = [30, 20];
     
     // Заполнение таблиц
     for (let i = 0; i < a_d.length; i++) {
@@ -226,14 +228,19 @@ function displayResult(result) {
                     </div>
                 </div>
                 
-                <div style="margin-top: 1.5rem;">
+                <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
                     <button onclick="downloadJSON(${JSON.stringify(result).replace(/"/g, '&quot;')})" class="btn btn-secondary">
                         Скачать JSON
+                    </button>
+                    <button onclick="showAdGraph()" class="btn btn-secondary">
+                        График Ad
                     </button>
                 </div>
             </div>
             
             ${result.debug ? renderDebugInfo(result.debug) : ''}
+            
+            <div id="graph-container" style="margin-top: 2rem;"></div>
         `;
     } else {
         container.innerHTML = `
@@ -351,4 +358,123 @@ function downloadJSON(data) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+// Показать график области достижимости Ad
+async function showAdGraph() {
+    const data = collectData();
+    const graphContainer = document.getElementById('graph-container');
+    
+    graphContainer.innerHTML = '<div style="text-align: center; padding: 2rem;"><span class="loading"></span> Построение графика...</div>';
+    
+    try {
+        // Запрос графика с SP-точками (более полный)
+        const response = await fetch('/api/plot/ad-with-sp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.detail || 'Ошибка построения графика');
+        }
+        
+        if (result.success) {
+            graphContainer.innerHTML = `
+                <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h3 style="text-align: center; margin-bottom: 1rem; color: var(--primary-color);">
+                        График области достижимости Ad
+                    </h3>
+                    <div style="text-align: center;">
+                        <img src="data:image/png;base64,${result.image}" 
+                             alt="График Ad" 
+                             style="max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                        <p>Ломаная R показывает область достижимости для делимых пунктов</p>
+                        <p>Красные квадраты — Парето-оптимальные точки SP (найдено: ${result.sp_count})</p>
+                        <p>Оранжевые линии — пороги пропорциональности (x=50, y=50)</p>
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center;">
+                        <button onclick="showSimpleAdGraph()" class="btn btn-secondary">
+                            Показать только ломаную R
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Прокрутка к графику
+            graphContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+    } catch (error) {
+        graphContainer.innerHTML = `
+            <div class="result-error">
+                <div class="result-title">✗ Ошибка</div>
+                <p>${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+// Показать простой график только с ломаной R
+async function showSimpleAdGraph() {
+    const data = collectData();
+    const graphContainer = document.getElementById('graph-container');
+    
+    graphContainer.innerHTML = '<div style="text-align: center; padding: 2rem;"><span class="loading"></span> Построение графика...</div>';
+    
+    try {
+        const response = await fetch('/api/plot/ad', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.detail || 'Ошибка построения графика');
+        }
+        
+        if (result.success) {
+            graphContainer.innerHTML = `
+                <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h3 style="text-align: center; margin-bottom: 1rem; color: var(--primary-color);">
+                        График области достижимости Ad (ломаная R)
+                    </h3>
+                    <div style="text-align: center;">
+                        <img src="data:image/png;base64,${result.image}" 
+                             alt="График Ad" 
+                             style="max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                        <p>Ломаная R построена после сортировки делимых пунктов по убыванию a<sub>i</sub>/b<sub>i</sub></p>
+                        <p>Пунктирные линии показывают структуру распределения пунктов</p>
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center;">
+                        <button onclick="showAdGraph()" class="btn btn-secondary">
+                            Показать с SP-точками
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            graphContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+    } catch (error) {
+        graphContainer.innerHTML = `
+            <div class="result-error">
+                <div class="result-title">✗ Ошибка</div>
+                <p>${error.message}</p>
+            </div>
+        `;
+    }
 }
