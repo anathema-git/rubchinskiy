@@ -6,6 +6,51 @@ from typing import List, Tuple, Optional, Dict, Any
 from .utils import safe_divide
 
 
+def _add_statement1_classification(result: Dict[str, Any]) -> None:
+    """
+    Добавляет классификацию по Statement 1: F(S) ⊆ Q(S) ⊆ P(S) ⊆ E(S) = U(S)
+    """
+    ga = result["gains"]["A"]
+    gb = result["gains"]["B"]
+    
+    # Всегда True для найденного решения (из SP)
+    result["efficient_exists"] = True
+    
+    # Проверка пропорциональности
+    result["proportional_exists"] = True  # Уже пропорциональное
+    
+    # Проверка равноценности (с погрешностью)
+    result["equitable_exists"] = abs(ga - gb) < 0.01
+    
+    # Fair = Efficient ∩ Proportional ∩ Equitable
+    result["fair_exists"] = (
+        result["efficient_exists"] and 
+        result["proportional_exists"] and 
+        result["equitable_exists"]
+    )
+    
+    # Добавляем информацию о множествах
+    result["statement1_sets"] = {
+        "E": result["efficient_exists"],
+        "P": result["proportional_exists"],
+        "Q": result["equitable_exists"],
+        "F": result["fair_exists"]
+    }
+    
+    # Текстовое описание
+    sets_list = []
+    if result["fair_exists"]:
+        sets_list.append("F(S)")
+    if result["equitable_exists"] and not result["fair_exists"]:
+        sets_list.append("Q(S)")
+    if result["proportional_exists"] and not result["equitable_exists"]:
+        sets_list.append("P(S)")
+    if result["efficient_exists"] and not result["proportional_exists"]:
+        sets_list.append("E(S)")
+    
+    result["belongs_to_sets"] = " ⊆ ".join(sets_list) if sets_list else "U(S) only"
+
+
 def check_vertex_proportionality(R_star: List[Tuple[float, float]], 
                                   threshold: float = 50.0) -> Optional[int]:
     """
@@ -194,7 +239,7 @@ def build_division_from_vertex(vertex_idx: int, sigma: List[int],
         original_idx = sorted_indices[i]
         gain_B += b_d[original_idx]
     
-    return {
+    result = {
         "proportional_exists": True,
         "division": {
             "divisible_A": divisible_to_A,
@@ -211,6 +256,10 @@ def build_division_from_vertex(vertex_idx: int, sigma: List[int],
             "y": round(y_star, 2)
         }
     }
+    
+    # Добавляем классификацию по множествам Statement 1
+    _add_statement1_classification(result)
+    return result
 
 
 def build_division_from_segment(segment_idx: int, sigma: List[int],
@@ -289,7 +338,7 @@ def build_division_from_segment(segment_idx: int, sigma: List[int],
         else:
             gain_B += b_d[original_idx]
     
-    return {
+    result = {
         "proportional_exists": True,
         "division": {
             "divisible_A": divisible_to_A,
@@ -311,3 +360,7 @@ def build_division_from_segment(segment_idx: int, sigma: List[int],
             "y": round(intersection[1], 2)
         }
     }
+    
+    # Добавляем классификацию по множествам Statement 1
+    _add_statement1_classification(result)
+    return result

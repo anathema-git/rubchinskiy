@@ -180,7 +180,8 @@ def plot_ad_region(a_d: List[float], b_d: List[float],
 def plot_ad_region_with_sp(a_d: List[float], b_d: List[float],
                            a_w: List[float], b_w: List[float],
                            SP: List[Tuple[float, float, List[int]]],
-                           threshold: float = 50.0) -> str:
+                           threshold: float = 50.0,
+                           solution_point: Tuple[float, float] = None) -> str:
     """
     Строит график области достижимости с точками SP и линией пропорциональности.
     
@@ -189,6 +190,7 @@ def plot_ad_region_with_sp(a_d: List[float], b_d: List[float],
         a_w, b_w: оценки для неделимых пунктов
         SP: Парето-множество точек
         threshold: порог пропорциональности (обычно H/2)
+        solution_point: итоговое решение (GA, GB) для отображения на графике
         
     Returns:
         base64-encoded строка с PNG изображением
@@ -208,21 +210,73 @@ def plot_ad_region_with_sp(a_d: List[float], b_d: List[float],
     ax.plot(x_coords, y_coords, 'ko', markersize=6, zorder=3)
     
     # Точки SP
+    solution_sp_index = None
     if SP:
         sp_x = [p[0] for p in SP]
         sp_y = [p[1] for p in SP]
         ax.scatter(sp_x, sp_y, c='red', s=100, marker='s', 
                   label='SP (Парето-точки)', zorder=4, edgecolors='darkred', linewidth=1.5)
         
-        # Смещённые ломаные R* для каждой точки SP (первые 3)
-        colors = ['blue', 'green', 'purple']
-        for i, (x_star, y_star, sigma) in enumerate(SP[:3]):
+        # Если есть точка решения, найдём на какой SP она находится
+        if solution_point is not None:
+            sol_x, sol_y = solution_point
+            # Ищем SP точку, на смещённой ломаной которой находится решение
+            for i, (sp_x_val, sp_y_val, sigma) in enumerate(SP):
+                R_star = shift_r_polygon(R, sp_x_val, sp_y_val)
+                
+                # Проверяем, лежит ли решение на этой R*
+                for j in range(len(R_star) - 1):
+                    x1, y1 = R_star[j]
+                    x2, y2 = R_star[j+1]
+                    
+                    # Проверка принадлежности к отрезку или вершине
+                    min_x, max_x = min(x1, x2), max(x1, x2)
+                    min_y, max_y = min(y1, y2), max(y1, y2)
+                    
+                    # Проверяем вершины
+                    if (abs(x1 - sol_x) < 0.1 and abs(y1 - sol_y) < 0.1) or \
+                       (abs(x2 - sol_x) < 0.1 and abs(y2 - sol_y) < 0.1):
+                        solution_sp_index = i
+                        break
+                    
+                    # Проверяем отрезок
+                    if min_x <= sol_x <= max_x and min_y <= sol_y <= max_y:
+                        if abs(x2 - x1) > 0.001:
+                            t = (sol_x - x1) / (x2 - x1)
+                            expected_y = y1 + t * (y2 - y1)
+                            if abs(expected_y - sol_y) < 0.1:
+                                solution_sp_index = i
+                                break
+                        elif abs(y2 - y1) > 0.001:
+                            t = (sol_y - y1) / (y2 - y1)
+                            expected_x = x1 + t * (x2 - x1)
+                            if abs(expected_x - sol_x) < 0.1:
+                                solution_sp_index = i
+                                break
+                
+                if solution_sp_index is not None:
+                    break
+        
+        # Показываем смещённую ломаную R* для решения или первые 3
+        if solution_sp_index is not None:
+            # Показываем только ту R*, на которой находится решение
+            x_star, y_star, sigma = SP[solution_sp_index]
             R_star = shift_r_polygon(R, x_star, y_star)
             rs_x = [p[0] for p in R_star]
             rs_y = [p[1] for p in R_star]
-            ax.plot(rs_x, rs_y, '--', color=colors[i % len(colors)], 
-                   linewidth=1.5, alpha=0.6, 
-                   label=f'R* (SP_{i+1})', zorder=2)
+            ax.plot(rs_x, rs_y, '--', color='blue', 
+                   linewidth=2.5, alpha=0.8, 
+                   label=f'R* (решение на SP[{solution_sp_index}])', zorder=2)
+        else:
+            # Если решение не найдено, показываем первые 3 как раньше
+            colors = ['blue', 'green', 'purple']
+            for i, (x_star, y_star, sigma) in enumerate(SP[:3]):
+                R_star = shift_r_polygon(R, x_star, y_star)
+                rs_x = [p[0] for p in R_star]
+                rs_y = [p[1] for p in R_star]
+                ax.plot(rs_x, rs_y, '--', color=colors[i % len(colors)], 
+                       linewidth=1.5, alpha=0.6, 
+                       label=f'R* (SP_{i+1})', zorder=2)
     
     # Линия пропорциональности x = threshold
     max_y = max(max(y_coords), threshold + 20)
@@ -233,6 +287,13 @@ def plot_ad_region_with_sp(a_d: List[float], b_d: List[float],
     max_x = max(max(x_coords), threshold + 20)
     ax.axhline(y=threshold, color='orange', linestyle='-.', linewidth=2, 
               label=f'y = {threshold} (пропорц.)', zorder=1, alpha=0.7)
+    
+    # Итоговое решение (если передано)
+    if solution_point is not None:
+        sol_x, sol_y = solution_point
+        ax.scatter([sol_x], [sol_y], c='lime', s=300, marker='*', 
+                  label=f'Решение ({sol_x:.1f}, {sol_y:.1f})', 
+                  zorder=5, edgecolors='darkgreen', linewidth=2)
     
     # Настройка осей
     ax.set_xlabel('x (выигрыш участника A)', fontsize=11, fontweight='bold')

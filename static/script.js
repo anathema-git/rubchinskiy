@@ -8,6 +8,12 @@ window.addEventListener('DOMContentLoaded', () => {
     loadExample();
 });
 
+// Переключение видимости примеров
+function toggleExamples() {
+    const content = document.getElementById('examples-content');
+    content.classList.toggle('open');
+}
+
 // Генерация таблиц для ввода оценок
 function generateTables() {
     const L = parseInt(document.getElementById('L').value);
@@ -94,26 +100,47 @@ function generateTables() {
     }
 }
 
-// Загрузка примера из ТЗ
+// Загрузка примера из ТЗ (оставляем для совместимости)
 function loadExample() {
-    // Корректный пример с правильными суммами
-    // A: делимые=60, неделимые=40, итого=100
-    // B: делимые=50, неделимые=50, итого=100
-    document.getElementById('L').value = 3;
-    document.getElementById('M').value = 2;
+    loadExample1();
+}
+
+// Example 1 - Divorce Arrangement (все делимые)
+function loadExample1() {
+    document.getElementById('L').value = 5;
+    document.getElementById('M').value = 0;
     document.getElementById('H').value = 100;
     
     generateTables();
     
-    // Делимые пункты (сумма A=60, B=50)
-    const a_d = [20, 15, 25];
-    const b_d = [20, 30, 0];
+    // Retirement, House, Cottage, Portfolio, Other
+    const a_d = [50, 20, 15, 10, 5];
+    const b_d = [40, 30, 10, 10, 10];
     
-    // Неделимые пункты (сумма A=40, B=50)
-    const a_w = [25, 15];
-    const b_w = [30, 20];
+    for (let i = 0; i < a_d.length; i++) {
+        document.getElementById(`a_d_${i}`).value = a_d[i];
+        document.getElementById(`b_d_${i}`).value = b_d[i];
+    }
     
-    // Заполнение таблиц
+    showNotification('Загружен Example 1: Развод (56.67/56.67)');
+}
+
+// Example 2 - Mergers (1 делимый, 4 неделимых)
+function loadExample2() {
+    document.getElementById('L').value = 1;
+    document.getElementById('M').value = 4;
+    document.getElementById('H').value = 100;
+    
+    generateTables();
+    
+    // Laying off (делимый)
+    const a_d = [30];
+    const b_d = [10];
+    
+    // CEO, President, Headquarters, Name (неделимые)
+    const a_w = [25, 15, 20, 10];
+    const b_w = [10, 20, 35, 25];
+    
     for (let i = 0; i < a_d.length; i++) {
         document.getElementById(`a_d_${i}`).value = a_d[i];
         document.getElementById(`b_d_${i}`).value = b_d[i];
@@ -123,6 +150,180 @@ function loadExample() {
         document.getElementById(`a_w_${i}`).value = a_w[i];
         document.getElementById(`b_w_${i}`).value = b_w[i];
     }
+    
+    showNotification('Загружен Example 2: Слияние компаний (62.5/62.5)');
+}
+
+// Example 3 - No Fair Division (2 делимых, 3 неделимых)
+function loadExample3() {
+    document.getElementById('L').value = 2;
+    document.getElementById('M').value = 3;
+    document.getElementById('H').value = 100;
+    
+    generateTables();
+    
+    const a_d = [10, 10];
+    const b_d = [30, 20];
+    
+    const a_w = [35, 30, 15];
+    const b_w = [18, 20, 12];
+    
+    for (let i = 0; i < a_d.length; i++) {
+        document.getElementById(`a_d_${i}`).value = a_d[i];
+        document.getElementById(`b_d_${i}`).value = b_d[i];
+    }
+    
+    for (let i = 0; i < a_w.length; i++) {
+        document.getElementById(`a_w_${i}`).value = a_w[i];
+        document.getElementById(`b_w_${i}`).value = b_w[i];
+    }
+    
+    showNotification('Загружен Example 3: Пропорциональный есть, fair нет');
+}
+
+// Example 4 - No Proportional (1 делимый, 4 неделимых)
+function loadExample4() {
+    document.getElementById('L').value = 1;
+    document.getElementById('M').value = 4;
+    document.getElementById('H').value = 100;
+    
+    generateTables();
+    
+    const a_d = [1];
+    const b_d = [1];
+    
+    const a_w = [45, 30, 15, 9];
+    const b_w = [30, 25, 22, 22];
+    
+    for (let i = 0; i < a_d.length; i++) {
+        document.getElementById(`a_d_${i}`).value = a_d[i];
+        document.getElementById(`b_d_${i}`).value = b_d[i];
+    }
+    
+    for (let i = 0; i < a_w.length; i++) {
+        document.getElementById(`a_w_${i}`).value = a_w[i];
+        document.getElementById(`b_w_${i}`).value = b_w[i];
+    }
+    
+    showNotification('Загружен Example 4: Пропорциональный делёж не существует');
+}
+
+// Example 5 - Proportional, No Equitable (1 делимый, 4 неделимых)
+function loadExample5() {
+    document.getElementById('L').value = 1;
+    document.getElementById('M').value = 4;
+    document.getElementById('H').value = 100;
+    
+    generateTables();
+    
+    const a_d = [3];
+    const b_d = [3];
+    
+    const a_w = [45, 30, 20, 2];
+    const b_w = [17, 20, 22, 38];
+    
+    for (let i = 0; i < a_d.length; i++) {
+        document.getElementById(`a_d_${i}`).value = a_d[i];
+        document.getElementById(`b_d_${i}`).value = b_d[i];
+    }
+    
+    for (let i = 0; i < a_w.length; i++) {
+        document.getElementById(`a_w_${i}`).value = a_w[i];
+        document.getElementById(`b_w_${i}`).value = b_w[i];
+    }
+    
+    showNotification('Загружен Example 5: Есть пропорциональный, нет равноценного');
+}
+
+// Example 6 - Equitable Not Efficient (1 делимый, 4 неделимых)
+function loadExample6() {
+    document.getElementById('L').value = 1;
+    document.getElementById('M').value = 4;
+    document.getElementById('H').value = 100;
+    
+    generateTables();
+    
+    const a_d = [5];
+    const b_d = [5];
+    
+    const a_w = [40, 10, 20, 25];
+    const b_w = [49, 1, 25, 20];
+    
+    for (let i = 0; i < a_d.length; i++) {
+        document.getElementById(`a_d_${i}`).value = a_d[i];
+        document.getElementById(`b_d_${i}`).value = b_d[i];
+    }
+    
+    for (let i = 0; i < a_w.length; i++) {
+        document.getElementById(`a_w_${i}`).value = a_w[i];
+        document.getElementById(`b_w_${i}`).value = b_w[i];
+    }
+    
+    showNotification('Загружен Example 6: Равноценный есть, но неэффективен');
+}
+
+// Example 7 - Fair Division Exists (1 делимый, 4 неделимых)
+function loadExample7() {
+    document.getElementById('L').value = 1;
+    document.getElementById('M').value = 4;
+    document.getElementById('H').value = 100;
+    
+    generateTables();
+    
+    const a_d = [17];
+    const b_d = [17];
+    
+    const a_w = [42, 37, 2, 2];
+    const b_w = [45, 34, 2, 2];
+    
+    for (let i = 0; i < a_d.length; i++) {
+        document.getElementById(`a_d_${i}`).value = a_d[i];
+        document.getElementById(`b_d_${i}`).value = b_d[i];
+    }
+    
+    for (let i = 0; i < a_w.length; i++) {
+        document.getElementById(`a_w_${i}`).value = a_w[i];
+        document.getElementById(`b_w_${i}`).value = b_w[i];
+    }
+    
+    showNotification('Загружен Example 7: Fair division существует (51.5/51.5)');
+}
+
+// Example 8 - Only Indivisible (только неделимые)
+function loadExample8() {
+    document.getElementById('L').value = 0;
+    document.getElementById('M').value = 3;
+    document.getElementById('H').value = 100;
+    
+    generateTables();
+    
+    const a_w = [51, 45, 4];
+    const b_w = [40, 50, 10];
+    
+    for (let i = 0; i < a_w.length; i++) {
+        document.getElementById(`a_w_${i}`).value = a_w[i];
+        document.getElementById(`b_w_${i}`).value = b_w[i];
+    }
+    
+    showNotification('Загружен Example 8: Только неделимые пункты');
+}
+
+// Показать уведомление
+function showNotification(message) {
+    // Создаем элемент уведомления
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    // Показываем уведомление
+    setTimeout(() => notification.classList.add('show'), 100);
+    
+    // Скрываем и удаляем через 3 секунды
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
 }
 
 // Сбор данных из формы
@@ -193,6 +394,106 @@ async function solveProblem() {
 }
 
 // Отображение результата
+// Отображение классификации решения
+function renderStatement1Classification(result) {
+    if (!result.statement1_sets) {
+        return '';
+    }
+    
+    const sets = result.statement1_sets;
+    const belongs = result.belongs_to_sets || 'U(S)';
+    
+    // statement1_sets - массив строк типа ['E(S)', 'P(S)', 'Q(S)', 'F(S)']
+    // или используем has_* флаги
+    const hasF = result.has_fair || sets.includes('F(S)');
+    const hasQ = result.has_equitable || sets.includes('Q(S)');
+    const hasP = result.has_proportional || sets.includes('P(S)');
+    const hasE = result.has_efficient || sets.includes('E(S)');
+    
+    // Определяем класс на основе наивысшего множества
+    let mainClass = 'statement1-u';
+    let mainLabel = 'U(S)';
+    let mainDescription = 'Универсум';
+    
+    if (hasF) {
+        mainClass = 'statement1-f';
+        mainLabel = 'F(S)';
+        mainDescription = 'Fair — Справедливое решение';
+    } else if (hasQ) {
+        mainClass = 'statement1-q';
+        mainLabel = 'Q(S)';
+        mainDescription = 'Equitable — Равноценное решение';
+    } else if (hasP) {
+        mainClass = 'statement1-p';
+        mainLabel = 'P(S)';
+        mainDescription = 'Proportional — Пропорциональное решение';
+    } else if (hasE) {
+        mainClass = 'statement1-e';
+        mainLabel = 'E(S)';
+        mainDescription = 'Efficient — Эффективное решение';
+    }
+    
+    return `
+        <div class="statement1-classification ${mainClass}">
+            <div class="statement1-header">
+                <div class="statement1-badge">${mainLabel}</div>
+                <div class="statement1-description">${mainDescription}</div>
+            </div>
+            
+            <div class="statement1-formula">
+                F(S) ⊆ Q(S) ⊆ P(S) ⊆ E(S) = U(S)
+            </div>
+            
+            <div class="statement1-grid">
+                <div class="statement1-item ${hasE ? 'active' : 'inactive'}">
+                    <div class="statement1-icon">${hasE ? '✓' : '✗'}</div>
+                    <div class="statement1-label">E(S)</div>
+                    <div class="statement1-desc">Efficient<br><small>Парето-оптимальное</small></div>
+                </div>
+                
+                <div class="statement1-item ${hasP ? 'active' : 'inactive'}">
+                    <div class="statement1-icon">${hasP ? '✓' : '✗'}</div>
+                    <div class="statement1-label">P(S)</div>
+                    <div class="statement1-desc">Proportional<br><small>GA≥H/2, GB≥H/2</small></div>
+                </div>
+                
+                <div class="statement1-item ${hasQ ? 'active' : 'inactive'}">
+                    <div class="statement1-icon">${hasQ ? '✓' : '✗'}</div>
+                    <div class="statement1-label">Q(S)</div>
+                    <div class="statement1-desc">Equitable<br><small>GA = GB</small></div>
+                </div>
+                
+                <div class="statement1-item ${hasF ? 'active' : 'inactive'}">
+                    <div class="statement1-icon">${hasF ? '✓' : '✗'}</div>
+                    <div class="statement1-label">F(S)</div>
+                    <div class="statement1-desc">Fair<br><small>E ∩ P ∩ Q</small></div>
+                </div>
+            </div>
+            
+            <div class="statement1-euler">
+                <div class="euler-diagram">
+                    <div class="euler-circle euler-e ${hasE ? 'active' : ''}">
+                        <span>E</span>
+                        <div class="euler-circle euler-p ${hasP ? 'active' : ''}">
+                            <span>P</span>
+                            <div class="euler-circle euler-q ${hasQ ? 'active' : ''}">
+                                <span>Q</span>
+                                <div class="euler-circle euler-f ${hasF ? 'active' : ''}">
+                                    <span>F</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="euler-legend">
+                    <p><strong>Диаграмма Эйлера</strong></p>
+                    <p>Решение принадлежит множеству: <strong>${belongs}</strong></p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function displayResult(result) {
     const outputSection = document.getElementById('output-section');
     const container = document.getElementById('result-container');
@@ -218,6 +519,8 @@ function displayResult(result) {
                             </div>
                         </div>
                     </div>
+                    
+                    ${renderStatement1Classification(result)}
                     
                     ${renderDivisibleDistribution(result.division.divisible_A, result.division.divisible_B)}
                     ${renderIndivisibleDistribution(result.division.indivisible)}
@@ -253,6 +556,11 @@ function displayResult(result) {
     
     // Прокрутка к результату
     outputSection.scrollIntoView({ behavior: 'smooth' });
+    
+    // Автоматически показываем график Ad
+    if (result.proportional_exists) {
+        setTimeout(() => showAdGraph(), 500);
+    }
 }
 
 // Отображение распределения делимых пунктов
@@ -395,9 +703,11 @@ async function showAdGraph() {
                              style="max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
                     </div>
                     <div style="margin-top: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
-                        <p>Ломаная R показывает область достижимости для делимых пунктов</p>
-                        <p>Красные квадраты — Парето-оптимальные точки SP (найдено: ${result.sp_count})</p>
+                        <p>Чёрная ломаная R — область достижимости для делимых пунктов</p>
+                        <p>Красные квадраты — Парето-оптимальные точки SP от неделимых (найдено: ${result.sp_count})</p>
+                        <p>Синяя пунктирная линия — смещённая ломаная R* для точки решения</p>
                         <p>Оранжевые линии — пороги пропорциональности (x=50, y=50)</p>
+                        <p><strong>Зелёная звезда ⭐ — итоговое решение задачи (лежит на синей R*)</strong></p>
                     </div>
                     <div style="margin-top: 1rem; text-align: center;">
                         <button onclick="showSimpleAdGraph()" class="btn btn-secondary">

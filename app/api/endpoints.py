@@ -10,12 +10,14 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from app.models.request_models import FairDivisionRequest
-from app.models.response_models import FairDivisionResponse, FairDivisionDebugResponse, DebugInfo
+from app.models.response_models import FairDivisionResponse, FairDivisionDebugResponse, DebugInfo, Division, Gains
 from fair_division_engine.utils import validate_input
 from fair_division_engine.r_polygon import build_r_polygon, check_r_monotonicity
 from fair_division_engine.indivisible import build_s_set
 from fair_division_engine.pareto import pareto_filter
 from fair_division_engine.proportional import find_proportional_division
+from fair_division_engine.equitable import find_equitable_division
+from fair_division_engine.comprehensive import find_all_division_types
 from fair_division_engine.visualization import plot_ad_region, plot_ad_region_with_sp
 
 router = APIRouter()
@@ -26,15 +28,15 @@ async def solve_fair_division(request: FairDivisionRequest, debug: bool = False)
     """
     Решение задачи справедливого дележа
     
-    Принимает данные о делимых и неделимых пунктах с оценками участников A и B,
-    и возвращает пропорциональный делёж если он существует.
+    Согласно Statement 1: F(S) ⊆ Q(S) ⊆ P(S) ⊆ E(S) = U(S)
+    Находит все типы решений: Efficient, Proportional, Equitable, Fair
     
     Args:
         request: данные задачи (L, M, оценки a_d, b_d, a_w, b_w)
         debug: включить отладочную информацию
         
     Returns:
-        Результат работы алгоритма с найденным дележом или сообщением об отсутствии решения
+        Результат со всеми типами решений
     """
     try:
         # Валидация входных данных
@@ -45,42 +47,68 @@ async def solve_fair_division(request: FairDivisionRequest, debug: bool = False)
             request.H
         )
         
-        # Шаг 1: Построение ломаной R для делимых пунктов
-        R, sorted_indices = build_r_polygon(request.a_d, request.b_d)
-        
-        # Проверка монотонности R
-        if not check_r_monotonicity(R):
-            raise HTTPException(
-                status_code=400,
-                detail="Ломаная R не является строго монотонной. Проверьте входные данные."
-            )
-        
-        # Шаг 2: Построение множества S всех распределений неделимых пунктов
-        S = build_s_set(request.a_w, request.b_w)
-        
-        # Шаг 3: Выделение Парето-множества SP
-        SP = pareto_filter(S)
-        
-        # Шаг 4: Поиск пропорционального дележа
-        result = find_proportional_division(
-            request.L, request.M,
+        # Комплексное решение - находим все типы
+        result = find_all_division_types(
             request.a_d, request.b_d,
             request.a_w, request.b_w,
-            R, sorted_indices, SP,
             request.H
         )
         
-        if result is None:
-            # Пропорциональный делёж не найден
-            response = {
-                "proportional_exists": False,
-                "error": "Пропорциональный делёж не существует для данных входных данных"
-            }
-        else:
-            response = result
+        # Формируем ответ
+        def format_division(div_data):
+            if div_data is None:
+                return None
+            x, sigma = div_data
+            return Division(
+                divisible_A={f"D{i+1}": round(x[i], 4) for i in range(len(x))},
+                divisible_B={f"D{i+1}": round(1-x[i], 4) for i in range(len(x))},
+                indivisible=sigma
+            )
+        
+        def format_gains(gains_data):
+            if gains_data is None:
+                return None
+            ga, gb = gains_data
+            return Gains(A=round(ga, 2), B=round(gb, 2))
+        
+        response = {
+            "has_efficient": result['has_efficient'],
+            "has_proportional": result['has_proportional'],
+            "has_equitable": result['has_equitable'],
+            "has_fair": result['has_fair'],
+            
+            "efficient_division": format_division(result['efficient_division']),
+            "proportional_division": format_division(result['proportional_division']),
+            "equitable_division": format_division(result['equitable_division']),
+            "fair_division": format_division(result['fair_division']),
+            
+            "efficient_gains": format_gains(result['efficient_gains']),
+            "proportional_gains": format_gains(result['proportional_gains']),
+            "equitable_gains": format_gains(result['equitable_gains']),
+            "fair_gains": format_gains(result['fair_gains']),
+            
+            "sp_points_count": result['sp_points_count'],
+            
+            # Statement 1 classification
+            "efficient_exists": result.get('efficient_exists', result['has_efficient']),
+            "proportional_exists": result.get('proportional_exists', result['has_proportional']),
+            "equitable_exists": result.get('equitable_exists', result['has_equitable']),
+            "fair_exists": result.get('fair_exists', result['has_fair']),
+            "statement1_sets": result.get('statement1_sets', []),
+            "belongs_to_sets": result.get('belongs_to_sets', 'U(S)'),
+            
+            # Для обратной совместимости
+            "division": format_division(result['fair_division'] or result['equitable_division'] or result['proportional_division']),
+            "gains": format_gains(result['fair_gains'] or result['equitable_gains'] or result['proportional_gains']),
+            "method": "comprehensive"
+        }
         
         # Добавление отладочной информации
         if debug:
+            R, sorted_indices = build_r_polygon(request.a_d, request.b_d)
+            S = build_s_set(request.a_w, request.b_w)
+            SP = pareto_filter(S)
+            
             debug_info = DebugInfo(
                 R_polygon=[[round(x, 2), round(y, 2)] for x, y in R],
                 sorted_indices=sorted_indices,
@@ -153,11 +181,41 @@ async def plot_ad_with_sp_graph(request: FairDivisionRequest):
         S = build_s_set(request.a_w, request.b_w)
         SP = pareto_filter(S)
         
+        # Находим решение для отображения на графике
+        from fair_division_engine.comprehensive import find_all_division_types, calculate_gains
+        solution_point = None
+        
+        try:
+            result = find_all_division_types(
+                request.a_d, request.b_d,
+                request.a_w, request.b_w,
+                request.H
+            )
+            # Берём лучший найденный тип дележа
+            if result.get("fair_division"):
+                x, sigma = result["fair_division"]
+                GA, GB = calculate_gains(request.a_d, request.b_d, request.a_w, request.b_w, x, sigma)
+                solution_point = (GA, GB)
+            elif result.get("equitable_division"):
+                x, sigma = result["equitable_division"]
+                GA, GB = calculate_gains(request.a_d, request.b_d, request.a_w, request.b_w, x, sigma)
+                solution_point = (GA, GB)
+            elif result.get("proportional_division"):
+                x, sigma = result["proportional_division"]
+                GA, GB = calculate_gains(request.a_d, request.b_d, request.a_w, request.b_w, x, sigma)
+                solution_point = (GA, GB)
+        except Exception as e:
+            # Логируем ошибку для отладки
+            import logging
+            logging.error(f"Error finding solution point: {e}")
+            pass  # Если решение не найдено, просто не показываем точку
+        
         # Построение графика
         img_base64 = plot_ad_region_with_sp(
             request.a_d, request.b_d,
             request.a_w, request.b_w,
-            SP, request.H / 2.0
+            SP, request.H / 2.0,
+            solution_point=solution_point
         )
         
         return {
@@ -170,6 +228,8 @@ async def plot_ad_with_sp_graph(request: FairDivisionRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка построения графика: {str(e)}")
+
+
 
 
 @router.get("/info")

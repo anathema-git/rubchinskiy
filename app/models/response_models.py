@@ -33,32 +33,61 @@ class Gains(BaseModel):
 class FairDivisionResponse(BaseModel):
     """
     Модель ответа для решения задачи справедливого дележа
+    Согласно Statement 1: F(S) ⊆ Q(S) ⊆ P(S) ⊆ E(S) = U(S)
     """
-    proportional_exists: bool = Field(..., description="Существует ли пропорциональный делёж")
-    division: Optional[Division] = Field(None, description="Распределение пунктов (если найдено)")
-    gains: Optional[Gains] = Field(None, description="Выигрыши участников (если найдено)")
+    # Основная информация о существовании решений
+    has_efficient: bool = Field(..., description="Существует ли эффективный делёж (E)")
+    has_proportional: bool = Field(..., description="Существует ли пропорциональный делёж (P)")
+    has_equitable: bool = Field(..., description="Существует ли равноценный делёж (Q)")
+    has_fair: bool = Field(..., description="Существует ли справедливый делёж (F = E ∩ P ∩ Q)")
+    
+    # Statement 1 classification
+    efficient_exists: Optional[bool] = Field(None, description="Существование эффективного решения (E(S))")
+    proportional_exists: Optional[bool] = Field(None, description="Существование пропорционального решения (P(S))")
+    equitable_exists: Optional[bool] = Field(None, description="Существование равноценного решения (Q(S))")
+    fair_exists: Optional[bool] = Field(None, description="Существование справедливого решения (F(S))")
+    statement1_sets: Optional[List[str]] = Field(None, description="Множества Statement 1, к которым принадлежит решение: E(S), P(S), Q(S), F(S)")
+    belongs_to_sets: Optional[str] = Field(None, description="Классификация решения по Statement 1")
+    
+    # Решения для каждого типа
+    efficient_division: Optional[Division] = Field(None, description="Эффективное распределение")
+    proportional_division: Optional[Division] = Field(None, description="Пропорциональное распределение")
+    equitable_division: Optional[Division] = Field(None, description="Равноценное распределение")
+    fair_division: Optional[Division] = Field(None, description="Справедливое распределение")
+    
+    # Выигрыши для каждого типа
+    efficient_gains: Optional[Gains] = Field(None, description="Выигрыши для эффективного")
+    proportional_gains: Optional[Gains] = Field(None, description="Выигрыши для пропорционального")
+    equitable_gains: Optional[Gains] = Field(None, description="Выигрыши для равноценного")
+    fair_gains: Optional[Gains] = Field(None, description="Выигрыши для справедливого")
+    
+    # Дополнительная информация
     method: Optional[str] = Field(None, description="Метод нахождения дележа")
-    vertex_index: Optional[int] = Field(None, description="Индекс вершины (для метода vertex)")
-    segment_index: Optional[int] = Field(None, description="Индекс отрезка (для метода segment)")
-    split_fraction: Optional[float] = Field(None, description="Доля деления пункта (для метода segment)")
-    sp_point: Optional[SPPoint] = Field(None, description="Точка из SP-множества")
-    intersection_point: Optional[IntersectionPoint] = Field(None, description="Точка пересечения (для метода segment)")
+    sp_points_count: Optional[int] = Field(None, description="Количество точек в Парето-множестве")
+    
+    # Для обратной совместимости (deprecated)
+    division: Optional[Division] = Field(None, description="[Deprecated] Используйте fair_division или equitable_division")
+    gains: Optional[Gains] = Field(None, description="[Deprecated] Используйте fair_gains или equitable_gains")
+    
     error: Optional[str] = Field(None, description="Сообщение об ошибке (если есть)")
     
     class Config:
         json_schema_extra = {
             "example": {
-                "proportional_exists": True,
-                "division": {
+                "has_efficient": True,
+                "has_proportional": True,
+                "has_equitable": True,
+                "has_fair": True,
+                "fair_division": {
                     "divisible_A": {"item_1": 1.0, "item_2": 1.0, "item_3": 0.0},
                     "divisible_B": {"item_1": 0.0, "item_2": 0.0, "item_3": 1.0},
                     "indivisible": [1, 0, 1, 0]
                 },
-                "gains": {
+                "fair_gains": {
                     "A": 56.67,
                     "B": 56.67
                 },
-                "method": "vertex"
+                "method": "equitable"
             }
         }
 
